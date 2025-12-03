@@ -20,38 +20,39 @@ public class LogMessageHandler {
         Object payload = message.getPayload();
         String timestamp = LocalDateTime.now().format(FORMATTER);
 
-        if (payload instanceof ILoggingEvent) {
-            // Handle Logback LoggingEvent objects
-            ILoggingEvent event = (ILoggingEvent) payload;
-
-            LocalDateTime eventTime = LocalDateTime.ofInstant(
-                Instant.ofEpochMilli(event.getTimeStamp()),
-                ZoneId.systemDefault()
-            );
-            String eventTimestamp = eventTime.format(FORMATTER);
-
-            String logMessage = String.format("[%s] [%s] %s - %s",
-                eventTimestamp,
-                event.getLevel(),
-                event.getLoggerName(),
-                event.getFormattedMessage()
-            );
-
-            System.out.println("[" + timestamp + "] " + logMessage);
-
-        } else if (payload instanceof byte[]) {
-            // Handle plain text byte arrays
+        // Handle plain text messages (byte arrays or strings)
+        if (payload instanceof byte[]) {
             String logMessage = new String((byte[]) payload, java.nio.charset.StandardCharsets.UTF_8);
             System.out.println("[" + timestamp + "] " + logMessage);
 
         } else if (payload instanceof String) {
-            // Handle plain text strings
             System.out.println("[" + timestamp + "] " + payload);
 
         } else {
             log.warn("Unexpected payload type: {}", payload.getClass().getName());
             System.out.println("[" + timestamp + "] " + payload.toString());
         }
+
+        // OPTION: Handle Logback LoggingEvent objects (Java serialized objects)
+        // Uncomment the code below if you want to handle Java serialized Logback events
+        // if (payload instanceof ILoggingEvent) {
+        //     ILoggingEvent event = (ILoggingEvent) payload;
+        //
+        //     LocalDateTime eventTime = LocalDateTime.ofInstant(
+        //         Instant.ofEpochMilli(event.getTimeStamp()),
+        //         ZoneId.systemDefault()
+        //     );
+        //     String eventTimestamp = eventTime.format(FORMATTER);
+        //
+        //     String logMessage = String.format("[%s] [%s] %s - %s",
+        //         eventTimestamp,
+        //         event.getLevel(),
+        //         event.getLoggerName(),
+        //         event.getFormattedMessage()
+        //     );
+        //
+        //     System.out.println("[" + timestamp + "] " + logMessage);
+        // }
 
         log.debug("Received log message from {}", message.getHeaders().get("ip_address"));
     }
