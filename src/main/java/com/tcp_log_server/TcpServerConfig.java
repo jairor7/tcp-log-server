@@ -22,6 +22,9 @@ public class TcpServerConfig {
     @Value("${tcp.server.backlog:100}")
     private int backlog;
 
+    @Value("${tcp.server.max-message-size:65536}")
+    private int maxMessageSize;
+
     @Bean
     public AbstractServerConnectionFactory serverConnectionFactory() {
         TcpNetServerConnectionFactory connectionFactory = new TcpNetServerConnectionFactory(port);
@@ -29,6 +32,7 @@ public class TcpServerConfig {
 
         // Configure deserializer for plain text messages with CRLF delimiters
         ByteArrayCrLfSerializer serializer = new ByteArrayCrLfSerializer();
+        serializer.setMaxMessageSize(maxMessageSize);
         connectionFactory.setDeserializer(serializer);
         connectionFactory.setSerializer(serializer);
 
@@ -42,7 +46,7 @@ public class TcpServerConfig {
         // Set single-use to false to reuse connections
         connectionFactory.setSingleUse(false);
 
-        log.info("TCP Server configured on port {} for plain text messages", port);
+        log.info("TCP Server configured on port {} for plain text messages (max message size: {} bytes)", port, maxMessageSize);
         return connectionFactory;
     }
 
