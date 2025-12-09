@@ -60,14 +60,8 @@ $stream.Flush()
 Write-Host "Sent: Simple plain text message"
 Start-Sleep -Seconds 1
 
-# Message 8 - Stack trace format
-$message8 = @"
-2025-11-09 23:10:35 ERROR Exception occurred in transaction processing
-java.lang.NullPointerException: Cannot invoke method on null object
-    at com.example.service.PaymentService.process(PaymentService.java:45)
-    at com.example.controller.PaymentController.handlePayment(PaymentController.java:23)
-`r`n
-"@
+# Message 8 - Stack trace format (as single line message with \n inside)
+$message8 = "2025-11-09 23:10:35 ERROR Exception occurred in transaction processing`njava.lang.NullPointerException: Cannot invoke method on null object`n    at com.example.service.PaymentService.process(PaymentService.java:45)`n    at com.example.controller.PaymentController.handlePayment(PaymentController.java:23)`r`n"
 $bytes8 = $encoding.GetBytes($message8)
 $stream.Write($bytes8, 0, $bytes8.Length)
 $stream.Flush()
@@ -88,7 +82,9 @@ $bytes10 = $encoding.GetBytes($message10)
 $stream.Write($bytes10, 0, $bytes10.Length)
 $stream.Flush()
 Write-Host "Sent: Syslog format message"
-Start-Sleep -Seconds 1
+
+# Wait for server to process all messages before closing
+Start-Sleep -Seconds 2
 
 $stream.Close()
 $client.Close()
