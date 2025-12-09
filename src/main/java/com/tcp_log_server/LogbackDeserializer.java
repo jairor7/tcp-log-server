@@ -3,6 +3,7 @@ package com.tcp_log_server;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.serializer.Deserializer;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -19,6 +20,11 @@ public class LogbackDeserializer implements Deserializer<Object> {
                 objectInputStream = new ObjectInputStream(inputStream);
             }
             return objectInputStream.readObject();
+        } catch (EOFException e) {
+            // Client closed connection cleanly - this is normal, not an error
+            log.debug("Connection closed by client (EOF reached)");
+            objectInputStream = null; // Reset for next connection
+            return null; // Signal end of stream
         } catch (ClassNotFoundException e) {
             throw new IOException("Failed to deserialize object", e);
         } catch (IOException e) {
@@ -30,8 +36,15 @@ public class LogbackDeserializer implements Deserializer<Object> {
                     return objectInputStream.readObject();
                 } catch (ClassNotFoundException ex) {
                     throw new IOException("Failed to deserialize object after reset", ex);
+                } catch (EOFException ex) {
+                    log.debug("Connection closed during stream reset");
+                    objectInputStream = null;
+                    return null;
                 }
             }
+            // Log other IO exceptions at debug level
+            log.debug("IOException during deserialization: {}", e.getMessage());
+            objectInputStream = null; // Reset for next connection
             throw e;
         }
     }
