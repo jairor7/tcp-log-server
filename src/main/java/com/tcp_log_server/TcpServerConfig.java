@@ -10,6 +10,7 @@ import org.springframework.integration.ip.tcp.TcpReceivingChannelAdapter;
 import org.springframework.integration.ip.tcp.connection.AbstractServerConnectionFactory;
 import org.springframework.integration.ip.tcp.connection.TcpNetServerConnectionFactory;
 import org.springframework.integration.ip.tcp.serializer.ByteArrayCrLfSerializer;
+import org.springframework.core.serializer.DefaultSerializer;
 import org.springframework.messaging.MessageChannel;
 
 @Slf4j
@@ -30,23 +31,23 @@ public class TcpServerConfig {
         TcpNetServerConnectionFactory connectionFactory = new TcpNetServerConnectionFactory(port);
         connectionFactory.setBacklog(backlog);
 
-        // Configure deserializer for plain text messages with CRLF delimiters
-        ByteArrayCrLfSerializer serializer = new ByteArrayCrLfSerializer();
-        serializer.setMaxMessageSize(maxMessageSize);
-        connectionFactory.setDeserializer(serializer);
+        // Configure deserializer for Java serialized objects (Logback SocketAppender)
+        LogbackDeserializer deserializer = new LogbackDeserializer();
+        DefaultSerializer serializer = new DefaultSerializer();
+        connectionFactory.setDeserializer(deserializer);
         connectionFactory.setSerializer(serializer);
 
-        // OPTION: Use this configuration for Java serialized objects (Logback SocketAppender)
-        // Uncomment the lines below and comment the ByteArrayCrLfSerializer lines above
-        // LogbackDeserializer deserializer = new LogbackDeserializer();
-        // DefaultSerializer serializer = new DefaultSerializer();
-        // connectionFactory.setDeserializer(deserializer);
+        // OPTION: Use this configuration for plain text messages with CRLF delimiters
+        // Uncomment the lines below and comment the Logback configuration above
+        // ByteArrayCrLfSerializer serializer = new ByteArrayCrLfSerializer();
+        // serializer.setMaxMessageSize(maxMessageSize);
+        // connectionFactory.setDeserializer(serializer);
         // connectionFactory.setSerializer(serializer);
 
         // Set single-use to false to reuse connections
         connectionFactory.setSingleUse(false);
 
-        log.info("TCP Server configured on port {} for plain text messages (max message size: {} bytes)", port, maxMessageSize);
+        log.info("TCP Server configured on port {} for Logback serialized objects", port);
         return connectionFactory;
     }
 

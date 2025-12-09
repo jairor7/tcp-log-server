@@ -7,11 +7,11 @@ Servidor de logs que recibe mensajes a través del protocolo TCP. Construido con
 Este proyecto implementa un servidor TCP centralizado para recolectar logs de aplicaciones remotas. El servidor:
 
 - Escucha conexiones TCP en el puerto **9999**
-- Recibe y procesa mensajes de log en diferentes formatos:
-  - Objetos serializados de Logback (ILoggingEvent)
-  - Texto plano en bytes o strings
-- Imprime los logs recibidos en consola con formato timestamp
+- Recibe y procesa mensajes de log de Logback SocketAppender
+- Deserializa objetos Java ILoggingEvent enviados por clientes Logback
+- Imprime los logs recibidos en consola con formato estructurado
 - Soporta conexiones persistentes y reutilizables
+- Maneja excepciones y stack traces
 
 ## Tecnologías Utilizadas
 
@@ -79,42 +79,71 @@ java -jar build/libs/tcp-log-server-0.0.1-SNAPSHOT.jar
 
 El servidor iniciará y escuchará en el puerto **9999**.
 
-## Probando el Servidor
+## Configurando Clientes para Enviar Logs
 
-### Usando el Script de Prueba (PowerShell)
+### Configuración de Logback en el Proyecto Cliente
 
-El proyecto incluye un script PowerShell que envía logs de prueba al servidor:
+Para que tu aplicación envíe logs al servidor, configura Logback con SocketAppender.
 
-```powershell
-.\send-test-logs.ps1
+**Paso 1:** Asegúrate de tener Logback en tu proyecto cliente:
+
+```gradle
+// build.gradle
+implementation 'ch.qos.logback:logback-classic'
 ```
 
-Este script envía 4 mensajes de prueba:
-- INFO: User login successful
-- ERROR: Database connection failed
-- WARN: Cache miss
-- DEBUG: Processing request
+o en Maven:
 
-### Enviando Logs Manualmente con Telnet
-
-```bash
-telnet localhost 9999
+```xml
+<!-- pom.xml -->
+<dependency>
+    <groupId>ch.qos.logback</groupId>
+    <artifactId>logback-classic</artifactId>
+</dependency>
 ```
 
-Luego escribe cualquier mensaje y presiona Enter.
+**Paso 2:** Crea o edita el archivo `logback.xml` o `logback-spring.xml` en `src/main/resources/`:
 
-### Enviando Logs desde PowerShell
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Appender para consola local -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
 
-```powershell
-$client = New-Object System.Net.Sockets.TcpClient('localhost', 9999)
-$stream = $client.GetStream()
-$encoding = [System.Text.Encoding]::UTF8
-$message = "Mi mensaje de log`r`n"
-$bytes = $encoding.GetBytes($message)
-$stream.Write($bytes, 0, $bytes.Length)
-$stream.Flush()
-$stream.Close()
-$client.Close()
+    <!-- Appender TCP para enviar logs al servidor -->
+    <appender name="TCP" class="ch.qos.logback.classic.net.SocketAppender">
+        <remoteHost>localhost</remoteHost>
+        <port>9999</port>
+        <reconnectionDelay>30000</reconnectionDelay>
+        <includeCallerData>false</includeCallerData>
+    </appender>
+
+    <!-- Logger root -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="TCP" />
+    </root>
+</configuration>
+```
+
+**Paso 3:** Ejecuta tu aplicación cliente. Los logs se enviarán automáticamente al servidor TCP.
+
+### Archivo de Ejemplo
+
+El proyecto incluye un archivo de ejemplo completo en `logback-client-example.xml` con configuraciones adicionales.
+
+### Formato de Salida del Servidor
+
+El servidor imprimirá los logs recibidos con el siguiente formato:
+
+```
+[2025-12-09 15:30:45.123] [INFO] com.example.MyClass - User login successful
+[2025-12-09 15:30:46.456] [ERROR] com.example.MyService - Database connection failed
+  Exception: java.sql.SQLException: Connection timeout
 ```
 
 ## Configuración
